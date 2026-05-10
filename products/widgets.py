@@ -73,11 +73,11 @@ class KeyValueWidget(forms.Widget):
 
         # ── Existing rows ─────────────────────────────────────────
         rows_html = ""
-        for k, v in pairs:  # what does this fe loop do
+        for k, v in pairs:
             k_esc = str(k).replace('"', "&quot;")
             v_esc = str(v).replace('"', "&quot;")
-        # the below formating is bad isn't it
-        rows_html += f"""
+            # rows_html += must be INSIDE the loop — k_esc/v_esc only exist here
+            rows_html += f"""
              <tr>
                <td><input type="text" name="{name}_key"   value="{k_esc}" placeholder="e.g. RAM" /></td>
                <td><input type="text" name="{name}_value" value="{v_esc}" placeholder="e.g. 8 GB" /></td>

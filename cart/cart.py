@@ -40,25 +40,31 @@ class Cart:
     def __iter__(self):
         product_ids = list(self.cart.keys())
         products = Product.objects.filter(id__in=product_ids)
-        cart = self.cart.copy()
-
-        # Build a set of valid IDs returned from the DB
-        valid_ids = set()
-        for product in products:
-            cart[str(product.id)]["product"] = product
-            valid_ids.add(str(product.id))
 
         # Auto-clean orphan items (product deleted from DB) from the session
+        valid_ids = {str(p.id) for p in products}
         orphan_ids = set(product_ids) - valid_ids
         if orphan_ids:
             for orphan_id in orphan_ids:
                 del self.cart[orphan_id]
             self.save()
 
-        for item in cart.values():
-            if "product" not in item:  # safety guard for orphans
+        # ── KEY FIX ──────────────────────────────────────────────────────────
+        # Work on a COPY of each session item, not the item itself.
+        # The session dict (self.cart) must only ever contain JSON-safe types
+        # (str, int, float, list, dict). If we write Decimal back into it,
+        # Django's signed_cookies session backend crashes when it tries to
+        # JSON-serialise the session on response.
+        # ─────────────────────────────────────────────────────────────────────
+        product_map = {str(p.id): p for p in products}
+        for product_id, session_item in self.cart.items():
+            product = product_map.get(product_id)
+            if product is None:
                 continue
-            item["price"] = Decimal(item["price"])
+            # Shallow copy keeps session_item untouched
+            item = session_item.copy()
+            item["product"]     = product
+            item["price"]       = Decimal(item["price"])        # Decimal for math
             item["total_price"] = item["price"] * item["quantity"]
             yield item
 

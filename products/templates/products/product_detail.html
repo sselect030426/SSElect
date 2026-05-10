@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static image_tags %}
 
 {% block title %}{{ product.name }} - SS Electronics{% endblock %}
 
@@ -24,8 +24,8 @@
         <div
           class="rounded-[3rem] overflow-hidden bg-base-200/50 aspect-square flex items-center justify-center border border-base-200">
           {% if product.image %}
-          <img id="main-image" src="{{ product.image.url }}" alt="{{ product.name }}"
-            class="w-full h-full object-cover" />
+          <img id="main-image" src="{% cloudinary_url product.image.url width=800 %}" alt="{{ product.name }}"
+            class="w-full h-full object-cover" decoding="async" />
           {% else %}
           <div class="text-base-content/20 text-center">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-32 w-32 mx-auto" fill="none" viewBox="0 0 24 24"
@@ -44,15 +44,15 @@
         <div class="grid grid-cols-4 gap-3">
           <!-- Main image as first thumb -->
           {% if product.image %}
-          <button onclick="document.getElementById('main-image').src='{{ product.image.url }}'"
+          <button onclick="document.getElementById('main-image').src='{% cloudinary_url product.image.url width=800 %}'"
             class="rounded-2xl overflow-hidden aspect-square bg-base-200 border-2 border-primary transition-all">
-            <img src="{{ product.image.url }}" alt="Main" class="w-full h-full object-cover" />
+            <img src="{% cloudinary_url product.image.url width=120 %}" alt="Main" loading="lazy" decoding="async" class="w-full h-full object-cover" />
           </button>
           {% endif %}
           {% for img in gallery %}
-          <button onclick="document.getElementById('main-image').src='{{ img.image.url }}'"
+          <button onclick="document.getElementById('main-image').src='{% cloudinary_url img.image.url width=800 %}'"
             class="rounded-2xl overflow-hidden aspect-square bg-base-200 border-2 border-transparent hover:border-primary transition-all">
-            <img src="{{ img.image.url }}" alt="Gallery {{ forloop.counter }}" class="w-full h-full object-cover" />
+            <img src="{% cloudinary_url img.image.url width=120 %}" alt="Gallery {{ forloop.counter }}" loading="lazy" decoding="async" class="w-full h-full object-cover" />
           </button>
           {% endfor %}
         </div>
@@ -309,8 +309,8 @@
         <a href="{{ p.get_absolute_url }}"
           class="group border border-base-200 rounded-[2rem] overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all reveal reveal-up delay-{{ forloop.counter|add:1 }}00">
           {% if p.image %}
-          <div class="bg-base-200/50 aspect-square overflow-hidden"><img src="{{ p.image.url }}" alt="{{ p.name }}"
-              class="w-full h-full object-cover group-hover:scale-105 transition-transform" /></div>
+          <div class="bg-base-200/50 aspect-square overflow-hidden"><img src="{% cloudinary_url p.image.url width=300 %}" alt="{{ p.name }}"
+              loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-105 transition-transform" /></div>
           {% endif %}
           <div class="p-4 space-y-1">
             {% if p.brand %}<p class="text-[9px] font-black uppercase text-primary tracking-widest">{{ p.brand }}</p>{% endif %}

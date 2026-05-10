@@ -1,6 +1,7 @@
 from django.shortcuts import get_object_or_404
 from django.views.generic import ListView, DetailView
 from django.db.models import Q, Count
+from django.core.cache import cache
 from .models import Product, Category, Tag
 from reviews.models import Review
 
@@ -13,6 +14,34 @@ class ProductListView(ListView):
 
     
     def get_queryset(self):
+        # Detect if any filters/search are active
+        has_filters = any([
+            self.kwargs.get("category_slug"),
+            self.request.GET.get("category"),
+            self.request.GET.get("tag"),
+            self.request.GET.get("brand"),
+            self.request.GET.get("q"),
+            self.request.GET.get("sort") not in (None, "", "newest"),
+        ])
+
+        if not has_filters:
+            # ── Cache the default unfiltered list (most common page view) ──
+            # This is the /products/ page with no filters — cache for 5 min.
+            # Saves ~1.5s Supabase round-trip on every repeat visitor.
+            cached = cache.get("default_product_list")
+            if cached is not None:
+                return cached
+            queryset = (
+                Product.objects.filter(is_active=True)
+                .select_related("category")
+                .order_by("-created_at")
+                .distinct()
+            )
+            result = list(queryset)
+            cache.set("default_product_list", result, timeout=300)  # 5 min
+            return result
+
+        # ── Filtered/searched: always hit DB for correct results ──
         queryset = Product.objects.filter(is_active=True)
 
         # Category filter (support both path kwargs and query params for multi-select)
@@ -66,15 +95,33 @@ class ProductListView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["categories"] = Category.objects.filter(is_active=True)
-        context["all_tags"] = Tag.objects.filter(is_active=True)
-        context["brands"] = (
-            Product.objects.filter(is_active=True)
-            .exclude(brand="")
-            .values_list("brand", flat=True)
-            .distinct()
-            .order_by("brand")
-        )
+
+        # ── Cached: categories (rarely change, safe to cache 10 min) ──
+        categories = cache.get("active_categories")
+        if categories is None:
+            categories = list(Category.objects.filter(is_active=True))
+            cache.set("active_categories", categories, timeout=600)
+        context["categories"] = categories
+
+        # ── Cached: tags ──
+        all_tags = cache.get("active_tags")
+        if all_tags is None:
+            all_tags = list(Tag.objects.filter(is_active=True))
+            cache.set("active_tags", all_tags, timeout=600)
+        context["all_tags"] = all_tags
+
+        # ── Cached: brand list ──
+        brands = cache.get("active_brands")
+        if brands is None:
+            brands = list(
+                Product.objects.filter(is_active=True)
+                .exclude(brand="")
+                .values_list("brand", flat=True)
+                .distinct()
+                .order_by("brand")
+            )
+            cache.set("active_brands", brands, timeout=600)
+        context["brands"] = brands
 
         category_slug = self.kwargs.get("category_slug")
         if category_slug:
@@ -106,38 +153,46 @@ class ProductDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         product = self.object
 
-        # All approved reviews
-        context["reviews"] = Review.objects.filter(product=product, is_approved=True)
-        context["review_count"] = context["reviews"].count()
+        # ── Cached: reviews for this product (cache per product pk) ──
+        cache_key = f"product_reviews_{product.pk}"
+        review_data = cache.get(cache_key)
+        if review_data is None:
+            reviews = list(Review.objects.filter(product=product, is_approved=True))
+            review_count = len(reviews)
+            star_breakdown = {}
+            for star in range(5, 0, -1):
+                count = sum(1 for r in reviews if r.rating == star)
+                pct = (count / review_count * 100) if review_count else 0
+                star_breakdown[star] = {"count": count, "percentage": round(pct)}
+            review_data = {
+                "reviews": reviews,
+                "review_count": review_count,
+                "star_breakdown": star_breakdown,
+            }
+            cache.set(cache_key, review_data, timeout=300)  # 5 min
+        context.update(review_data)
 
-        # Per-star breakdown
-        star_breakdown = {}
-        for star in range(5, 0, -1):
-            count = context["reviews"].filter(rating=star).count()
-            pct = (
-                (count / context["review_count"] * 100)
-                if context["review_count"]
-                else 0
-            )
-            star_breakdown[star] = {"count": count, "percentage": round(pct)}
-        context["star_breakdown"] = star_breakdown
-
-        # User's own review
+        # User's own review (never cache — user-specific)
         if self.request.user.is_authenticated:
             context["user_review"] = Review.objects.filter(
                 product=product, user=self.request.user
             ).first()
 
-        # Related products: same category OR shared tags, ranked by tag overlap then rating
-        product_tags = product.tags.all()
-        context["related_products"] = (
-            Product.objects.filter(is_active=True)
-            .exclude(pk=product.pk)
-            .filter(Q(category=product.category) | Q(tags__in=product_tags))
-            .annotate(shared_tags=Count("tags", filter=Q(tags__in=product_tags)))
-            .order_by("-shared_tags", "-average_rating")
-            .distinct()[:4]
-        )
+        # ── Cached: related products (cache per product pk) ──
+        related_key = f"related_products_{product.pk}"
+        related = cache.get(related_key)
+        if related is None:
+            product_tags = product.tags.all()
+            related = list(
+                Product.objects.filter(is_active=True)
+                .exclude(pk=product.pk)
+                .filter(Q(category=product.category) | Q(tags__in=product_tags))
+                .annotate(shared_tags=Count("tags", filter=Q(tags__in=product_tags)))
+                .order_by("-shared_tags", "-average_rating")
+                .distinct()[:4]
+            )
+            cache.set(related_key, related, timeout=300)
+        context["related_products"] = related
 
         # Specs as a list of (key, value) tuples for template iteration
         context["spec_items"] = (

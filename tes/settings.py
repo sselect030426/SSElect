@@ -98,7 +98,7 @@ import dj_database_url
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASE_URL = os.environ.get("DATABASE_URL")
+DATABASE_URL = os.environ.get("DATABASE_URL")  # fixed: was DATABASE_URLA (typo)
 
 if DATABASE_URL:
     DATABASES = {
@@ -117,6 +117,45 @@ else:
             "NAME": BASE_DIR / "db.sqlite3",
         }
     }
+# ─── Caching ─────────────────────────────────────────────────────────────────
+# Strategy:
+#   Production (Vercel): Upstash Redis — persists across serverless invocations,
+#                        free tier (10k cmd/day) is plenty for a small shop.
+#   Local dev:           File-based cache — zero setup, works offline.
+#
+# WHY not file cache on Vercel: Vercel filesystem is read-only except /tmp,
+# and /tmp is wiped between invocations — so file cache is useless there.
+# WHY not LocMemCache on Vercel: process dies after each request — same issue.
+
+# Accept either name — UPSTASH_REDIS_URL (Vercel dashboard) or REDIS_URL (.env local)
+UPSTASH_REDIS_URL = os.environ.get("UPSTASH_REDIS_URL") or os.environ.get("REDIS_URL", "")
+
+if UPSTASH_REDIS_URL:
+    # ── Production: Upstash Redis (free tier, works on Vercel serverless) ──
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": UPSTASH_REDIS_URL,
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                "SOCKET_CONNECT_TIMEOUT": 3,   # fail fast rather than hang
+                "SOCKET_TIMEOUT": 3,
+                "IGNORE_EXCEPTIONS": True,      # if Redis is down, app still works
+            },
+            "TIMEOUT": 300,  # default 5 min — overridden per cache.set() call
+        }
+    }
+else:
+    # ── Local dev: file-based cache — zero setup, works offline ──
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+            "LOCATION": BASE_DIR / ".django_cache",
+            "TIMEOUT": 300,
+            "OPTIONS": {"MAX_ENTRIES": 1000},
+        }
+    }
+
 # session engine + other things 
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
 SESSION_COOKIE_HTTPONLY = True

@@ -4,19 +4,19 @@ from django.utils.text import slugify
 import uuid
 
 
-class ProductImage(models.Model):
+class ProductImage(models.Model): # what is this model  inside as aparam 
     """An uploaded gallery image attached to a product."""
 
     product = models.ForeignKey(
-        "Product",
-        on_delete=models.CASCADE,
+        "Product",  
+        on_delete=models.CASCADE, ## what does cascade even means 
         related_name="gallery_images",
     )
-    image = models.ImageField(upload_to="products/gallery/")
-    order = models.PositiveIntegerField(default=0, help_text="Lower number = shown first")
+    image = models.ImageField(upload_to="products/gallery/") # what does ine do i don't understad  
+    order = models.PositiveIntegerField(default=0, help_text="Lower number = shown first") # what dies this means 
 
     class Meta:
-        ordering = ["order", "id"]
+        ordering = ["order", "id"] # what are we een talking here 
 
     def __str__(self):
         return f"Image #{self.pk} for {self.product.name}"
@@ -27,38 +27,38 @@ class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
     slug = models.SlugField(max_length=120, unique=True)
     description = models.TextField(blank=True)
-    parent = models.ForeignKey(
+    parent = models.ForeignKey( # what parenet are we talking and eehwt awoird this look like wen i see this int he real world
         "self",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
         related_name="children",
     )
-    image_url = models.URLField(max_length=500, blank=True)
-    display_order = models.IntegerField(default=0)
-    is_active = models.BooleanField(default=True)
+    image_url = models.URLField(max_length=500, blank=True) # why do i store the url fo the image 
+    display_order = models.IntegerField(default=0) # what display_order are we talking ehere 
+    is_active = models.BooleanField(default=True) 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        verbose_name = "Category"
-        verbose_name_plural = "Categories"
-        ordering = ["display_order", "name"]
+    class Meta: #wat si the purpise of the mta class in the fie 
+        verbose_name = "Category" 
+        verbose_name_plural = "Categories" 
+        ordering = ["display_order", "name"] 
 
-    def __str__(self):
-        return self.name
+    def __str__(self):  # this si the tosting functio in think 
+        return self.name 
 
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(self.name)
-        super().save(*args, **kwargs)
+    def save(self, *args, **kwargs):  # what does it save  or is it used to update the Product
+        if not self.slug: 
+            self.slug = slugify(self.name) 
+        super().save(*args, **kwargs) 
 
-    def get_absolute_url(self):
-        return reverse("products:category_detail", kwargs={"category_slug": self.slug})
+    def get_absolute_url(self): 
+        return reverse("products:category_detail", kwargs={"category_slug": self.slug}) # ooh we can get the get_absolute_url using this things also what is : do in the  python  
 
 
-class Tag(models.Model):
-    """Short keyword labels for products (e.g. 5G, OLED, Gaming)."""
+class Tag(models.Model): # how does this is differnt for mthe category we have 
+    """Short keyword labels for products (e.g. 5G, OLED, Gaming).""" 
     name = models.CharField(max_length=50, unique=True)
     slug = models.SlugField(max_length=60, unique=True)
     description = models.CharField(max_length=200, blank=True)
@@ -66,7 +66,7 @@ class Tag(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    class Meta:
+    class Meta: # yeah right if the ordeing is set here then what is the ordering  that is in the admin.py 
         ordering = ["name"]
 
     def __str__(self):
@@ -84,8 +84,8 @@ class Product(models.Model):
     Includes brand, SKU, specifications JSON, image gallery, and pricing.
     """
 
-    AVAILABILITY_CHOICES = [
-        ("In Stock", "In Stock"),
+    AVAILABILITY_CHOICES = [ # i need to remoev the unnessry ones from this 
+        ("In Stock", "In Stock"), # why is yhere 2 valus of tuple 
         ("Out of Stock", "Out of Stock"),
         ("Pre-Order", "Pre-Order"),
         ("Discontinued", "Discontinued"),
@@ -170,7 +170,7 @@ class Product(models.Model):
     def get_remove_from_cart_url(self):
         return reverse("cart:remove_from_cart", kwargs={"slug": self.slug})
 
-    @property
+    @property # what does thisproperty are even do 
     def is_on_sale(self):
         return self.original_price is not None and self.original_price > self.price
 

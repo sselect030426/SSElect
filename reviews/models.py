@@ -7,8 +7,9 @@ class Review(models.Model):
     """User review for a product. Supports moderation and helpfulness voting."""
 
     RATING_CHOICES = [(i, str(i)) for i in range(1, 6)]
-
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="reviews")
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name="reviews"
+    )
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     rating = models.PositiveSmallIntegerField(choices=RATING_CHOICES)
     title = models.CharField(max_length=200, blank=True)

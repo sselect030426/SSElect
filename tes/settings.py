@@ -74,23 +74,21 @@ ROOT_URLCONF = "tes.urls"
 # this does the following that  is this tells the django where to find the templates 
 TEMPLATES = [
     {
-        "BACKEND": "django.template.backends.django.DjangoTemplates" ,
-        "DIRS": [BASE_DIR / "templates"] ,# tell to look inside the templates ininside each of the folder
-        "APP_DIRS": True , # tell to look inside the templates ininside each of the folder
-        "OPTIONS": { # what dara are injectted to each of the temolated by default 
-            "context_processors": [
-                "django.template.context_processors.request" ,
-                "django.contrib.auth.context_processors.auth" ,
-                "django.contrib.messages.context_processors.messages" ,
-                "cart.cart.cart_context" ,
-                "tes.context_processors.theme_colors" ,
-                "core.context_processors.contact_info" ,
-            ] ,
-        } ,
-    } ,
-]
-
-# for tellin which applcaion are we using 
+        "BACKEND": "django.template.backends.django.DjangoTemplates",  # which template engine to use
+        "DIRS": [BASE_DIR / "templates"],  # global template folder (project-level)
+        "APP_DIRS": True,  # also look inside each app's templates/ folder
+        "OPTIONS": {
+            "context_processors": [  # global data automatically available in all templates
+                "django.template.context_processors.request",  # gives request object
+                "django.contrib.auth.context_processors.auth",  # gives user/auth info
+                "django.contrib.messages.context_processors.messages",  # gives messages
+                "cart.cart.cart_context",  # custom cart data
+                "tes.context_processors.theme_colors",  # custom theme data
+                "core.context_processors.contact_info",  # custom contact data
+            ],
+        },
+    },
+]# for tellin which applcaion are we using 
 WSGI_APPLICATION = "tes.wsgi.application"
 
 
@@ -107,7 +105,7 @@ if DATABASE_URL:
         "default": dj_database_url.config(
             default=DATABASE_URL,
             conn_max_age=600,
-            conn_health_checks=True,
+            conn_health_checks=True, # what will hppend when the connection is not good at all 
         )
     }
 
@@ -115,7 +113,7 @@ else:
     # Fallback to SQLite for local development
     DATABASES = {
         "default": {
-            "ENGINE": "django.db.backends.sqlite3",
+            "ENGINE": "django.db.backends.sqlite3", 
             "NAME": BASE_DIR / "db.sqlite3",
         }
     }
@@ -182,7 +180,7 @@ STORAGES = {
 }
 
 # UPI Payment Configuration
-UPI_ID = os.environ.get("UPI_ID", "gpzstore@oksbi")
+UPI_ID = os.environ.get("UPI_ID", "SSElet@hdfc")
 PAYEE_NAME = os.environ.get("PAYEE_NAME", " SS Electronincs")
 
 # Google Sheets Sync — Apps Script Web App URL

@@ -4,13 +4,14 @@ from django.db.models import Q, Count
 from .models import Product, Category, Tag
 from reviews.models import Review
 
-
+# i really don't know wow these thing even fucntion
 class ProductListView(ListView):
     model = Product
     template_name = "products/product_list.html"
     context_object_name = "products"
     paginate_by = 12
 
+    
     def get_queryset(self):
         queryset = Product.objects.filter(is_active=True)
 
@@ -19,14 +20,15 @@ class ProductListView(ListView):
         path_category = self.kwargs.get("category_slug")
         if path_category:
             category_slugs.append(path_category)
-            
+
         param_categories = self.request.GET.getlist("category")
         if param_categories:
             category_slugs.extend(param_categories)
-            
+
         if category_slugs:
             queryset = queryset.filter(
-                Q(category__slug__in=category_slugs) | Q(category__parent__slug__in=category_slugs)
+                Q(category__slug__in=category_slugs)
+                | Q(category__parent__slug__in=category_slugs)
             )
 
         # Tag filter
@@ -76,7 +78,9 @@ class ProductListView(ListView):
 
         category_slug = self.kwargs.get("category_slug")
         if category_slug:
-            context["current_category"] = get_object_or_404(Category, slug=category_slug)
+            context["current_category"] = get_object_or_404(
+                Category, slug=category_slug
+            )
 
         category_slugs = []
         if category_slug:
@@ -110,7 +114,11 @@ class ProductDetailView(DetailView):
         star_breakdown = {}
         for star in range(5, 0, -1):
             count = context["reviews"].filter(rating=star).count()
-            pct = (count / context["review_count"] * 100) if context["review_count"] else 0
+            pct = (
+                (count / context["review_count"] * 100)
+                if context["review_count"]
+                else 0
+            )
             star_breakdown[star] = {"count": count, "percentage": round(pct)}
         context["star_breakdown"] = star_breakdown
 
@@ -132,7 +140,9 @@ class ProductDetailView(DetailView):
         )
 
         # Specs as a list of (key, value) tuples for template iteration
-        context["spec_items"] = list(product.specifications.items()) if product.specifications else []
+        context["spec_items"] = (
+            list(product.specifications.items()) if product.specifications else []
+        )
 
         return context
 

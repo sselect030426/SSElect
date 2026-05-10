@@ -16,8 +16,11 @@ class Order(models.Model):
     ]
 
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
-        null=True, blank=True, related_name="orders"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="orders",
     )
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
@@ -34,12 +37,16 @@ class Order(models.Model):
         ("upi_qr", "UPI QR"),
     ]
 
-    payment_method = models.CharField(max_length=50, choices=PAYMENT_CHOICES, default="upi_qr")
+    payment_method = models.CharField(
+        max_length=50, choices=PAYMENT_CHOICES, default="upi_qr"
+    )
     is_paid = models.BooleanField(default=False)
     # Prevents stock from being deducted more than once per order
     stock_deducted = models.BooleanField(default=False)
     utr_number = models.CharField(max_length=100, blank=True, null=True)
-    payment_screenshot = models.ImageField(upload_to="payment_proofs/", blank=True, null=True)
+    payment_screenshot = models.ImageField(
+        upload_to="payment_proofs/", blank=True, null=True
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -65,7 +72,7 @@ class OrderItem(models.Model):
         return self.price * self.quantity
 
 
-@receiver(post_save, sender=Order)
+@receiver(post_save, sender=Order)  # what is this and how does this work
 def deduct_stock_on_confirmation(sender, instance, **kwargs):
     """
     Fires after an Order is saved.

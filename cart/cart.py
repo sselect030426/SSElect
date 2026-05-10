@@ -38,12 +38,26 @@ class Cart:
         self.save()
 
     def __iter__(self):
-        product_ids = self.cart.keys()
+        product_ids = list(self.cart.keys())
         products = Product.objects.filter(id__in=product_ids)
         cart = self.cart.copy()
+
+        # Build a set of valid IDs returned from the DB
+        valid_ids = set()
         for product in products:
             cart[str(product.id)]["product"] = product
+            valid_ids.add(str(product.id))
+
+        # Auto-clean orphan items (product deleted from DB) from the session
+        orphan_ids = set(product_ids) - valid_ids
+        if orphan_ids:
+            for orphan_id in orphan_ids:
+                del self.cart[orphan_id]
+            self.save()
+
         for item in cart.values():
+            if "product" not in item:  # safety guard for orphans
+                continue
             item["price"] = Decimal(item["price"])
             item["total_price"] = item["price"] * item["quantity"]
             yield item

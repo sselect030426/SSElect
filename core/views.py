@@ -42,10 +42,9 @@ def contact(request):
         
         # Render HTML and Plain Text
         html_message = render_to_string("emails/contact_email.html", context)
-        plain_message = strip_tags(html_message)
-        
+        plain_message = strip_tags(html_message) # what does this line  do 
         try:
-            send_mail(
+            send_mail( #  what is this ? does it have special config too 
                 f"Contact Form: {subject}",
                 plain_message,
                 settings.DEFAULT_FROM_EMAIL,
@@ -55,11 +54,11 @@ def contact(request):
             )
             print(f"✅ SUCCESS: Contact email sent successfully from {settings.DEFAULT_FROM_EMAIL}")
             messages.success(request, f"Thank you {name}! Your message has been sent.")
-        except Exception as e:
+        except Exception as e: # i need to create some other type of exceptio mtoo . now it only catches the deault one i need to caqtch all the ones sepratly while giving the seprate warning 
             logger.error(f"Error sending contact email: {e}")
             messages.error(request, "There was an error sending your message. Please try again later.")
         
-        return redirect("core:contact")
+        return redirect("core:contact") # this i happpend afyer the message has sent and can i use this indide like notmal statement .  why return 
         
     return render(request, "core/contact.html")
 
@@ -72,9 +71,7 @@ def partnership(request):
         phone = request.POST.get("phone_number", "").strip()
         business_type = request.POST.get("business_type", "").strip()
         message = request.POST.get("message", "").strip()
-        
         logger.info(f"Partnership inquiry: {business_name} (Contact: {contact_person})")
-        
         # Email Context
         context = {
             "business_name": business_name,
@@ -87,7 +84,7 @@ def partnership(request):
         
         # Render HTML and Plain Text
         html_message = render_to_string("emails/partnership_email.html", context)
-        plain_message = strip_tags(html_message)
+        plain_message = strip_tags(html_message) # what dies this strip_tags do 
         
         try:
             send_mail(
